@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Android-30 22.1.7171670 clang",
+        "compilers": {
+            "C": "${env:ANDROID_HOME}/ndk/22.1.7171670/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+            "CXX": "${env:ANDROID_HOME}/ndk/22.1.7171670/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+        },
+        "toolchainFile": "${env:ANDROID_HOME}/ndk/22.1.7171670/build/cmake/android.toolchain.cmake",
+        "cmakeSettings": {
+            "ANDROID_TOOLCHAIN": "clang",
+            "ANDROID_PLATFORM": "android-30"
+        }
+    }
+]
