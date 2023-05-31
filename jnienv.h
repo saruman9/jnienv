@@ -9,8 +9,13 @@
 
 typedef struct JniInvocation
 {
+    // Name of library providing JNI_ method implementations.
     const char *jni_provider_library_name;
+
+    // Opaque pointer to shared library from dlopen / LoadLibrary.
     void *jni_provider_library;
+
+    // Function pointers to methods in JNI provider.
     jint (*JNI_GetDefaultJavaVMInitArgs)(void *);
     jint (*JNI_CreateJavaVM)(JavaVM **, JNIEnv **, void *);
     jint (*JNI_GetCreatedJavaVMs)(JavaVM **, jsize, jsize *);
