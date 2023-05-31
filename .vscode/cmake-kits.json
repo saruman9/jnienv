@@ -10,5 +10,17 @@
             "ANDROID_TOOLCHAIN": "clang",
             "ANDROID_PLATFORM": "android-30"
         }
+    },
+    {
+        "name": "Android-31 25.2.9519653 clang",
+        "compilers": {
+            "C": "${env:ANDROID_HOME}/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+            "CXX": "${env:ANDROID_HOME}/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+        },
+        "toolchainFile": "${env:ANDROID_HOME}/ndk/25.2.9519653/build/cmake/android.toolchain.cmake",
+        "cmakeSettings": {
+            "ANDROID_TOOLCHAIN": "clang",
+            "ANDROID_PLATFORM": "android-31"
+        }
     }
 ]
