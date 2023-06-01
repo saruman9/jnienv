@@ -30,4 +30,4 @@ typedef struct JniContext
 } JniCtx;
 
 int init_jni_env(JniCtx *, char **, uint8_t);
-int deinit_jni_env(JniCtx *);
+int destroy_jni_env(JniCtx *);
