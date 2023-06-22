@@ -1,60 +1,47 @@
+#include "jnienv.h"
+
 #include <dlfcn.h>
 #include <stdbool.h>
 
-#include "jnienv.h"
-
 #define LOG_TAG "jnienv"
-#define ANDROID_RUNTIME_DSO "libandroid_runtime.so"
+#define LIBART_DSO "libart.so"
+#define LIBANDROID_RUNTIME_DSO "libandroid_runtime.so"
 
 typedef jint (*JNI_CreateJavaVM_t)(JavaVM **p_vm, JNIEnv **p_env, void *vm_args);
+typedef jint (*registerNatives_t)(JNIEnv *env, jclass clazz);
 
-int init_jni_env(JniCtx *ctx, char **jvm_options, uint8_t jvm_nb_options)
-{
+int init_jni_env(JniCtx *ctx, char **jvm_options, uint8_t jvm_nb_options) {
     JNI_CreateJavaVM_t JNI_CreateJavaVM;
-    jint (*registerFrameworkNatives)(JNIEnv *env);
-    JniInvocationImpl *(*JniInvocationCreate)();
-    bool (*JniInvocationInit)(JniInvocationImpl *instance, const char *library);
+    void *libart_dso;
     void *libandroid_runtime_dso;
 
-    LOGV("Initialize JNI environment");
+    LOGI("[i] Initialize JNI environment");
 
-    if ((libandroid_runtime_dso = dlopen(ANDROID_RUNTIME_DSO, RTLD_NOW)) == NULL)
-    {
-        LOGE("%s\n", dlerror());
+    if ((libart_dso = dlopen(LIBART_DSO, RTLD_NOW)) == NULL) {
+        LOGE("[X] %s", dlerror());
         return JNI_ERR;
     }
 
-    if ((JniInvocationCreate = dlsym(libandroid_runtime_dso, "JniInvocationCreate")) == NULL)
-    {
-        LOGE("%s\n", dlerror());
+    if ((libandroid_runtime_dso = dlopen(LIBANDROID_RUNTIME_DSO, RTLD_NOW)) == NULL) {
+        LOGE("[X] %s", dlerror());
         return JNI_ERR;
     }
 
-    if ((JniInvocationInit = dlsym(libandroid_runtime_dso, "JniInvocationInit")) == NULL)
-    {
-        LOGE("%s\n", dlerror());
+    if ((JNI_CreateJavaVM = (JNI_CreateJavaVM_t)dlsym(libart_dso, "JNI_CreateJavaVM")) == NULL) {
+        LOGE("[X] %s", dlerror());
         return JNI_ERR;
     }
 
-    if ((JNI_CreateJavaVM = (JNI_CreateJavaVM_t)dlsym(libandroid_runtime_dso, "JNI_CreateJavaVM")) == NULL)
-    {
-        LOGE("%s\n", dlerror());
+    registerNatives_t registerNatives =
+        (registerNatives_t)dlsym(libandroid_runtime_dso, "registerFrameworkNatives");
+    if (!registerNatives) {
+        LOGE("[X] %s", dlerror());
         return JNI_ERR;
     }
-
-    if ((registerFrameworkNatives = dlsym(libandroid_runtime_dso, "registerFrameworkNatives")) == NULL)
-    {
-        LOGE("%s\n", dlerror());
-        return JNI_ERR;
-    }
-
-    ctx->invocation = JniInvocationCreate();
-    JniInvocationInit(ctx->invocation, ANDROID_RUNTIME_DSO);
 
     JavaVMOption options[jvm_nb_options];
 
-    for (int i = 0; i < jvm_nb_options; ++i)
-        options[i].optionString = jvm_options[i];
+    for (int i = 0; i < jvm_nb_options; ++i) options[i].optionString = jvm_options[i];
 
     JavaVMInitArgs args;
     args.version = JNI_VERSION_1_6;
@@ -62,44 +49,45 @@ int init_jni_env(JniCtx *ctx, char **jvm_options, uint8_t jvm_nb_options)
     args.options = options;
     args.ignoreUnrecognized = JNI_TRUE;
 
-    jint status = JNI_CreateJavaVM(&ctx->vm, &ctx->env, &args);
-    if (status == JNI_ERR)
-        return JNI_ERR;
+    int status = JNI_OK;
+    if ((status = JNI_CreateJavaVM(&ctx->vm, &ctx->env, &args)) != JNI_OK) {
+        LOGE("[X] Failed JNI_CreateJavaVM: %d", status);
+        return status;
+    } else {
+        LOGI("[+] vm: %p, env: %p", ctx->vm, ctx->env);
+    }
 
-    LOGD("vm: %p, env: %p\n", ctx->vm, ctx->env);
+    if ((status = registerNatives(ctx->env, 0)) != JNI_OK) {
+        LOGE("[X] Failed registerNatives: %d", status);
+        return status;
+    } else {
+        LOGI("[+] registerNatives success");
+    }
 
-    status = registerFrameworkNatives(ctx->env);
-    if (status == JNI_ERR)
-        return JNI_ERR;
-
-    return JNI_OK;
+    return status;
 }
 
-int destroy_jni_env(JniCtx *ctx)
-{
-    void (*JniInvocationDestroy)(JniInvocationImpl *instance);
-    void *libandroid_runtime_dso;
+int destroy_jni_env(JniCtx *ctx) {
+    LOGI("[i] Destroy JNI environment");
 
-    LOGV("Destroy JNI environment");
-
-    if (ctx == NULL || ctx->vm == NULL)
-        return JNI_ERR;
-
-    if ((libandroid_runtime_dso = dlopen(ANDROID_RUNTIME_DSO, RTLD_NOW)) == NULL)
-    {
-        LOGE("%s\n", dlerror());
+    if (ctx == NULL || ctx->vm == NULL) {
         return JNI_ERR;
     }
 
-    if ((JniInvocationDestroy = dlsym(libandroid_runtime_dso, "JniInvocationDestroy")) == NULL)
-    {
-        LOGE("%s\n", dlerror());
-        return JNI_ERR;
-    }
+    int status = JNI_OK;
+    if ((status = (*ctx->vm)->DetachCurrentThread(ctx->vm)) != JNI_OK) {
+        LOGE("[X] DetachCurrentThread failed: %d", status);
+        return status;
+    } else {
+        LOGI("[+] DetachCurrentThread success");
+    };
 
-    (*ctx->vm)->DetachCurrentThread(ctx->vm);
-    (*ctx->vm)->DestroyJavaVM(ctx->vm);
-    JniInvocationDestroy(ctx->invocation);
+    if ((status = (*ctx->vm)->DestroyJavaVM(ctx->vm)) != JNI_OK) {
+        LOGE("[X] DestroyJavaVM failed: %d", status);
+        return status;
+    } else {
+        LOGI("[+] DestroyJavaVM success");
+    };
 
-    return JNI_OK;
+    return status;
 }

@@ -6,9 +6,9 @@ static JniCtx ctx;
 
 int fuzz(uint8_t *buffer, size_t size) {
     int status;
-    char *options[2] = {"-verbose:jni", "-Djava.library.path=/data/local/tmp"};
+    char *options[1] = {"-Djava.library.path=/data/local/tmp"};
 
-    if ((status = init_jni_env(&ctx, options, 2)) != JNI_OK) {
+    if ((status = init_jni_env(&ctx, options, 1)) != JNI_OK) {
         return status;
     }
 
@@ -17,8 +17,4 @@ int fuzz(uint8_t *buffer, size_t size) {
     return 0;
 }
 
-int main(int argc, char const *argv[]) {
-    fuzz(NULL, 0);
-
-    return 0;
-}
+int main(int argc, char const *argv[]) { return fuzz(NULL, 0); }

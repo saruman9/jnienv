@@ -1,4 +1,5 @@
 {
     "cmake.buildDirectory": "${workspaceFolder}/target/${variant:abi}/${variant:buildType}",
-    "cmake.generator": "Unix Makefiles", // for runpath using
+    // for runpath using
+    "cmake.generator": "Unix Makefiles",
 }
