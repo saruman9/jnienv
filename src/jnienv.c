@@ -47,7 +47,7 @@ int init_jni_env(JniCtx *ctx, char **jvm_options, uint8_t jvm_nb_options) {
     args.version = JNI_VERSION_1_6;
     args.nOptions = jvm_nb_options;
     args.options = options;
-    args.ignoreUnrecognized = JNI_TRUE;
+    args.ignoreUnrecognized = JNI_FALSE;
 
     int status = JNI_OK;
     if ((status = JNI_CreateJavaVM(&ctx->vm, &ctx->env, &args)) != JNI_OK) {
