@@ -71,6 +71,7 @@ int destroy_jni_env(JniCtx *ctx) {
     LOGI("[i] Destroy JNI environment");
 
     if (ctx == NULL || ctx->vm == NULL) {
+        LOGW("[!] ctx or ctx->vm is NULL");
         return JNI_ERR;
     }
 
